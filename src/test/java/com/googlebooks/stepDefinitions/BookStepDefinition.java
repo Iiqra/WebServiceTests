@@ -1,4 +1,5 @@
 package com.googlebooks.stepDefinitions;
+import com.googlebooks.businessLogic.GoogleBooksBusinessLogic;
 import com.googlebooks.pojos.BooksVolume;
 import com.googlebooks.utils.PropertyReader;
 import io.cucumber.java.en.Given;
@@ -7,31 +8,31 @@ import io.cucumber.java.en.When;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
-import org.jruby.RubyProcess;
 import org.junit.Assert;
 import io.restassured.response.ValidatableResponse;
 
-import java.util.Dictionary;
-import java.util.List;
 import java.util.Map;
 
-import static com.Constants.ServiceConstant.BASE_URL;
+import static io.restassured.RestAssured.basePath;
 import static io.restassured.RestAssured.given;
+import static com.googlebooks.constants.ServiceConstants.BASE_URL;
 
 
 public class BookStepDefinition extends PropertyReader {
 
     private RequestSpecification requestSpecification;
     private Response response;
-    private BooksVolume booksVolume;
+    private BooksVolume booksVolumePojo;
     private ValidatableResponse json;
     private RequestSpecification request;
+    private String expectedResponseKind;
+    private int expectedResponseItemCount;
+
     //private String ENDPOINT_GET_BOOK_BY_ISBN = "https://www.googleapis.com/books/v1/volumes";
 
     @Given("webService endpoint is up")
     public void webserviceEndpointIsUp() {
         requestSpecification = new RequestSpecBuilder().
-                //setBaseUri(ENDPOINT_GET_BOOK_BY_ISBN).
                 setBaseUri(prop.getProperty(BASE_URL)).
                 build();
     }
@@ -45,11 +46,24 @@ public class BookStepDefinition extends PropertyReader {
                 spec(requestSpecification).
                 when().
                 get(pathParameters);
+        booksVolumePojo = GoogleBooksBusinessLogic.getBooksVolumeResponseObject(response);
     }
 
-    @Then("verify response {int} and {string} from webService endpoint response")
+    @Then("verify {int} and {string} from webService endpoint response")
     public void verifyResponseStatusCodeAndContentTypeFromWebServiceEndpointResponse(int statusCode, String contentType) {
         Assert.assertEquals(statusCode, response.getStatusCode());
         Assert.assertEquals(contentType, response.getContentType());
+    }
+
+    @Then("verify {string} and {int} from webService endpoint response")
+    public void verifyKindAndItemCountFromWebServiceEndpointResponse(String a, int b) {
+        Assert.assertEquals(a, booksVolumePojo.getKind());
+        Assert.assertEquals(b, booksVolumePojo.getTotalItems());
+    }
+
+    @Then("verify {string} and itemcount is not null from webService endpoint response")
+    public void verifyKindAndItemcountIsNotNullFromWebServiceEndpointResponse(String expectedResponseKind) {
+        Assert.assertEquals(expectedResponseKind, booksVolumePojo.getKind());
+        Assert.assertNotNull(booksVolumePojo.getTotalItems());
     }
 }
